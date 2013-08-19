@@ -155,11 +155,13 @@ Vector2f RenderTarget::mapPixelToCoords(const Vector2i& point, const View& view)
     return view.getInverseTransform().transformPoint(normalized);
 }
 
+
 ////////////////////////////////////////////////////////////
 Vector2i RenderTarget::mapCoordsToPixel(const Vector2f& point) const
 {
     return mapCoordsToPixel(point, getView());
 }
+
 
 ////////////////////////////////////////////////////////////
 Vector2i RenderTarget::mapCoordsToPixel(const Vector2f& point, const View& view) const
@@ -176,6 +178,7 @@ Vector2i RenderTarget::mapCoordsToPixel(const Vector2f& point, const View& view)
     return pixel;
 }
 
+
 ////////////////////////////////////////////////////////////
 void RenderTarget::draw(const Drawable& drawable, const RenderStates& states)
 {
@@ -190,6 +193,15 @@ void RenderTarget::draw(const Vertex* vertices, unsigned int vertexCount,
     // Nothing to draw?
     if (!vertices || (vertexCount == 0))
         return;
+
+    // GL_QUADS is unavailable on OpenGL ES
+    #ifdef SFML_OPENGL_ES
+        if (type == Quads)
+        {
+            err() << "sf::Quads primitive type is not supported on OpenGL ES platforms, drawing skipped" << std::endl;
+            return;
+        }
+    #endif
 
     if (activate(true))
     {
@@ -257,7 +269,7 @@ void RenderTarget::draw(const Vertex* vertices, unsigned int vertexCount,
 
         // Find the OpenGL primitive type
         static const GLenum modes[] = {GL_POINTS, GL_LINES, GL_LINE_STRIP, GL_TRIANGLES,
-                                       GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN, GL_QUADS};
+                                       GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN};
         GLenum mode = modes[type];
 
         // Draw the primitives
@@ -278,19 +290,21 @@ void RenderTarget::pushGLStates()
 {
     if (activate(true))
     {
-#ifdef SFML_DEBUG
-        // make sure that the user didn't leave an unchecked OpenGL error
-        GLenum error = glGetError();
-        if (error != GL_NO_ERROR)
-        {
-            err() << "OpenGL error (" << error << ") detected in user code, "
-                  << "you should check for errors with glGetError()"
-                  << std::endl;
-        }
-#endif
+        #ifdef SFML_DEBUG
+            // make sure that the user didn't leave an unchecked OpenGL error
+            GLenum error = glGetError();
+            if (error != GL_NO_ERROR)
+            {
+                err() << "OpenGL error (" << error << ") detected in user code, "
+                      << "you should check for errors with glGetError()"
+                      << std::endl;
+            }
+        #endif
 
-        glCheck(glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS));
-        glCheck(glPushAttrib(GL_ALL_ATTRIB_BITS));
+        #ifndef SFML_OPENGL_ES
+            glCheck(glPushClientAttrib(GL_CLIENT_ALL_ATTRIB_BITS));
+            glCheck(glPushAttrib(GL_ALL_ATTRIB_BITS));
+        #endif
         glCheck(glMatrixMode(GL_MODELVIEW));
         glCheck(glPushMatrix());
         glCheck(glMatrixMode(GL_PROJECTION));
@@ -314,8 +328,10 @@ void RenderTarget::popGLStates()
         glCheck(glPopMatrix());
         glCheck(glMatrixMode(GL_TEXTURE));
         glCheck(glPopMatrix());
-        glCheck(glPopClientAttrib());
-        glCheck(glPopAttrib());
+        #ifndef SFML_OPENGL_ES
+            glCheck(glPopClientAttrib());
+            glCheck(glPopAttrib());
+        #endif
     }
 }
 
@@ -325,8 +341,8 @@ void RenderTarget::resetGLStates()
 {
     if (activate(true))
     {
-        // Make sure that GLEW is initialized
-        priv::ensureGlewInit();
+        // Make sure that extensions are initialized
+        priv::ensureExtensionsInit();
 
         // Define the default OpenGL states
         glCheck(glDisable(GL_CULL_FACE));
@@ -393,26 +409,35 @@ void RenderTarget::applyBlendMode(const BlendMode& mode)
     // Apply the blend mode, falling back to the non-separate versions if necessary
     if (GLEW_EXT_blend_func_separate)
     {
-        glCheck(glBlendFuncSeparateEXT(
-            factorToGlConstant(mode.colorSrcFactor), factorToGlConstant(mode.colorDstFactor),
-            factorToGlConstant(mode.alphaSrcFactor), factorToGlConstant(mode.alphaDstFactor)));
-    }
-    else
-    {
-        glCheck(glBlendFunc(
-            factorToGlConstant(mode.colorSrcFactor),
-            factorToGlConstant(mode.colorDstFactor)));
-    }
+        // glBlendFuncSeparate is used when available to avoid an incorrect alpha value when the target
+        // is a RenderTexture -- in this case the alpha value must be written directly to the target buffer
 
-    if (GLEW_EXT_blend_equation_separate)
-    {
-        glCheck(glBlendEquationSeparateEXT(
-            equationToGlConstant(mode.colorEquation),
-            equationToGlConstant(mode.alphaEquation)));
-    }
-    else
-    {
-        glCheck(glBlendEquation(equationToGlConstant(mode.colorEquation)));
+        // Alpha blending
+        default :
+        case BlendAlpha :
+            if (GL_blend_func_separate)
+                glCheck(glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+            else
+                glCheck(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+            break;
+
+        // Additive blending
+        case BlendAdd :
+            if (GL_blend_func_separate)
+                glCheck(glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ONE));
+            else
+                glCheck(glBlendFunc(GL_SRC_ALPHA, GL_ONE));
+            break;
+
+        // Multiplicative blending
+        case BlendMultiply :
+            glCheck(glBlendFunc(GL_DST_COLOR, GL_ZERO));
+            break;
+
+        // No blending
+        case BlendNone :
+            glCheck(glBlendFunc(GL_ONE, GL_ZERO));
+            break;
     }
 
     m_cache.lastBlendMode = mode;
