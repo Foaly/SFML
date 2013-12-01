@@ -415,9 +415,9 @@ void RenderTarget::applyBlendMode(const BlendMode& mode)
         // Alpha blending
         default :
         case BlendAlpha :
-            if (GL_blend_func_separate)
+            if (GLEXT_blend_func_separate)
             {
-                glCheck(glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+                glCheck(GLEXT_glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
             }
             else
             {
@@ -428,9 +428,9 @@ void RenderTarget::applyBlendMode(const BlendMode& mode)
 
         // Additive blending
         case BlendAdd :
-            if (GL_blend_func_separate)
+            if (GLEXT_blend_func_separate)
             {
-                glCheck(glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ONE));
+                glCheck(GLEXT_glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ONE));
             }
             else
             {
