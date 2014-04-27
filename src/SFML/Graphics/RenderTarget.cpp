@@ -407,47 +407,28 @@ void RenderTarget::applyCurrentView()
 void RenderTarget::applyBlendMode(const BlendMode& mode)
 {
     // Apply the blend mode, falling back to the non-separate versions if necessary
-    if (GLEW_EXT_blend_func_separate)
+    if (GLEXT_blend_func_separate)
     {
-        // glBlendFuncSeparate is used when available to avoid an incorrect alpha value when the target
-        // is a RenderTexture -- in this case the alpha value must be written directly to the target buffer
+        glCheck(GLEXT_glBlendFuncSeparate(
+            factorToGlConstant(mode.colorSrcFactor), factorToGlConstant(mode.colorDstFactor),
+            factorToGlConstant(mode.alphaSrcFactor), factorToGlConstant(mode.alphaDstFactor)));
+    }
+    else
+    {
+        glCheck(glBlendFunc(
+            factorToGlConstant(mode.colorSrcFactor),
+            factorToGlConstant(mode.colorDstFactor)));
+    }
 
-        // Alpha blending
-        default :
-        case BlendAlpha :
-            if (GLEXT_blend_func_separate)
-            {
-                glCheck(GLEXT_glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
-            }
-            else
-            {
-                glCheck(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-            }
-
-            break;
-
-        // Additive blending
-        case BlendAdd :
-            if (GLEXT_blend_func_separate)
-            {
-                glCheck(GLEXT_glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ONE, GL_ONE));
-            }
-            else
-            {
-                glCheck(glBlendFunc(GL_SRC_ALPHA, GL_ONE));
-            }
-
-            break;
-
-        // Multiplicative blending
-        case BlendMultiply :
-            glCheck(glBlendFunc(GL_DST_COLOR, GL_ZERO));
-            break;
-
-        // No blending
-        case BlendNone :
-            glCheck(glBlendFunc(GL_ONE, GL_ZERO));
-            break;
+    if (GLEXT_blend_equation_separate)
+    {
+        glCheck(GLEXT_glBlendEquationSeparate(
+            equationToGlConstant(mode.colorEquation),
+            equationToGlConstant(mode.alphaEquation)));
+    }
+    else
+    {
+        glCheck(glBlendEquation(equationToGlConstant(mode.colorEquation)));
     }
 
     m_cache.lastBlendMode = mode;
