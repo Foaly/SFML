@@ -94,10 +94,9 @@
         m_window = nil;
         m_oglView = nil;
         m_requester = 0;
-        m_fullscreen = NO;
 
         // Retain the window for our own use.
-        m_window = window;
+        m_window = [window retain];
 
         if (m_window == nil)
         {
@@ -106,7 +105,8 @@
         }
 
         // Create the view.
-        m_oglView = [[SFOpenGLView alloc] initWithFrame:[[m_window contentView] frame]];
+        m_oglView = [[SFOpenGLView alloc] initWithFrame:[[m_window contentView] frame]
+                                             fullscreen:NO];
 
         if (m_oglView == nil)
         {
@@ -144,12 +144,13 @@
         m_window = nil;
         m_oglView = nil;
         m_requester = 0;
-        m_fullscreen = style & sf::Style::Fullscreen;
 
-        if (m_fullscreen)
+        if (style & sf::Style::Fullscreen)
             [self setupFullscreenViewWithMode:mode];
         else
             [self setupWindowWithMode:mode andStyle:style];
+
+        [m_oglView finishInit];
     }
     return self;
 }
@@ -181,7 +182,7 @@
     [m_window setOpaque:YES];
     [m_window setHidesOnDeactivate:YES];
     [m_window setAutodisplay:YES];
-    [m_window setReleasedWhenClosed:YES];
+    [m_window setReleasedWhenClosed:NO]; // We own the class, not AppKit
 
     // Register for event
     [m_window setDelegate:self];
@@ -189,7 +190,7 @@
     [m_window setIgnoresMouseEvents:NO];
 
     // Create a master view containing our OpenGL view
-    NSView* masterView = [[SFBlackView alloc] initWithFrame:windowRect];
+    NSView* masterView = [[[SFBlackView alloc] initWithFrame:windowRect] autorelease];
 
     if (masterView == nil)
     {
@@ -204,7 +205,8 @@
     CGFloat y = (desktop.height - mode.height) / 2.0;
     NSRect oglRect = NSMakeRect(x, y, mode.width, mode.height);
 
-    m_oglView = [[SFOpenGLView alloc] initWithFrame:oglRect];
+    m_oglView = [[SFOpenGLView alloc] initWithFrame:oglRect
+                                         fullscreen:YES];
 
     if (m_oglView == nil)
     {
@@ -217,9 +219,6 @@
     // Populate the window and views
     [masterView addSubview:m_oglView];
     [m_window setContentView:masterView];
-
-    // Finalize setup
-    [m_oglView enterFullscreen];
 }
 
 
@@ -265,7 +264,8 @@
     }
 
     // Create the view.
-    m_oglView = [[SFOpenGLView alloc] initWithFrame:[[m_window contentView] frame]];
+    m_oglView = [[SFOpenGLView alloc] initWithFrame:[[m_window contentView] frame]
+                                         fullscreen:NO];
 
     if (m_oglView == nil)
     {
@@ -287,7 +287,7 @@
     // And some other things...
     [m_window center];
     [m_window setAutodisplay:YES];
-    [m_window setReleasedWhenClosed:YES];
+    [m_window setReleasedWhenClosed:NO]; // We own the class, not AppKit
 }
 
 
@@ -297,13 +297,22 @@
     [self closeWindow];
     [NSMenu setMenuBarVisible:YES];
 
-    m_window = nil;
-    m_oglView = nil;
+    [m_window release];
+    [m_oglView release];
+
+    [super dealloc];
 }
 
 
 #pragma mark
 #pragma mark WindowImplDelegateProtocol's methods
+
+
+////////////////////////////////////////////////////////
+-(CGFloat)displayScaleFactor
+{
+    return [m_oglView displayScaleFactor];
+}
 
 
 ////////////////////////////////////////////////////////
@@ -318,7 +327,7 @@
 ////////////////////////////////////////////////////////
 -(sf::WindowHandle)getSystemHandle
 {
-    return (__bridge sf::WindowHandle)m_window;
+    return m_window;
 }
 
 
@@ -442,6 +451,7 @@
 ////////////////////////////////////////////////////////
 -(void)closeWindow
 {
+    [self applyContext:nil];
     [m_window close];
     [m_window setDelegate:nil];
     [self setRequesterTo:0];
@@ -497,6 +507,10 @@
 
     // Set app icon.
     [[SFApplication sharedApplication] setApplicationIconImage:icon];
+
+    // Free up.
+    [icon release];
+    [bitmap release];
 }
 
 
@@ -543,38 +557,6 @@
 
     m_requester->windowClosed();
     return NO;
-}
-
-
-////////////////////////////////////////////////////////
--(void)windowDidBecomeKey:(NSNotification*)notification
-{
-    (void)notification;
-
-    // Send event.
-    if (m_requester == 0)
-        return;
-
-    m_requester->windowGainedFocus();
-
-    if (m_fullscreen)
-        [m_oglView enterFullscreen];
-}
-
-
-////////////////////////////////////////////////////////
--(void)windowDidResignKey:(NSNotification*)notification
-{
-    (void)notification;
-
-    // Send event.
-    if (m_requester == 0)
-        return;
-
-    m_requester->windowLostFocus();
-
-    if (m_fullscreen)
-        [m_oglView exitFullscreen];
 }
 
 

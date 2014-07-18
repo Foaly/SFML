@@ -63,8 +63,8 @@ namespace
         switch (blendEquation)
         {
             default:
-            case sf::BlendMode::Add:             return GL_FUNC_ADD;
-            case sf::BlendMode::Subtract:        return GL_FUNC_SUBTRACT;
+            case sf::BlendMode::Add:             return GLEXT_GL_FUNC_ADD;
+            case sf::BlendMode::Subtract:        return GLEXT_GL_FUNC_SUBTRACT;
         }
     }
 }
@@ -93,6 +93,9 @@ void RenderTarget::clear(const Color& color)
 {
     if (activate(true))
     {
+        // Unbind texture to fix RenderTexture preventing clear
+        applyTexture(NULL);
+
         glCheck(glClearColor(color.r / 255.f, color.g / 255.f, color.b / 255.f, color.a / 255.f));
         glCheck(glClear(GL_COLOR_BUFFER_BIT));
     }
@@ -130,8 +133,8 @@ IntRect RenderTarget::getViewport(const View& view) const
 
     return IntRect(static_cast<int>(0.5f + width  * viewport.left),
                    static_cast<int>(0.5f + height * viewport.top),
-                   static_cast<int>(width  * viewport.width),
-                   static_cast<int>(height * viewport.height));
+                   static_cast<int>(0.5f + width  * viewport.width),
+                   static_cast<int>(0.5f + height * viewport.height));
 }
 
 
@@ -340,10 +343,20 @@ void RenderTarget::popGLStates()
 ////////////////////////////////////////////////////////////
 void RenderTarget::resetGLStates()
 {
+    // Check here to make sure a context change does not happen after activate(true)
+    bool shaderAvailable = Shader::isAvailable();
+
     if (activate(true))
     {
         // Make sure that extensions are initialized
         priv::ensureExtensionsInit();
+
+        // Make sure that the texture unit which is active is the number 0
+        if (GLEXT_multitexture)
+        {
+            glCheck(GLEXT_glClientActiveTexture(GLEXT_GL_TEXTURE0));
+            glCheck(GLEXT_glActiveTexture(GLEXT_GL_TEXTURE0));
+        }
 
         // Define the default OpenGL states
         glCheck(glDisable(GL_CULL_FACE));
@@ -362,8 +375,9 @@ void RenderTarget::resetGLStates()
         applyBlendMode(BlendAlpha);
         applyTransform(Transform::Identity);
         applyTexture(NULL);
-        if (Shader::isAvailable())
+        if (shaderAvailable)
             applyShader(NULL);
+
         m_cache.useVertexCache = false;
 
         // Set the default view
@@ -428,7 +442,7 @@ void RenderTarget::applyBlendMode(const BlendMode& mode)
     }
     else
     {
-        glCheck(glBlendEquation(equationToGlConstant(mode.colorEquation)));
+        glCheck(GLEXT_glBlendEquation(equationToGlConstant(mode.colorEquation)));
     }
 
     m_cache.lastBlendMode = mode;

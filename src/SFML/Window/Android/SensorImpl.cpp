@@ -29,6 +29,11 @@
 #include <SFML/System/Time.hpp>
 #include <android/looper.h>
 
+// Define missing constants
+#define ASENSOR_TYPE_GRAVITY             0x00000009
+#define ASENSOR_TYPE_LINEAR_ACCELERATION 0x0000000a
+#define ASENSOR_TYPE_ORIENTATION         0x00000003
+
 namespace
 {
     ALooper* looper;
@@ -90,9 +95,6 @@ bool SensorImpl::open(Sensor::Type sensor)
     // Set the event rate (not to consume too much battery)
     ASensorEventQueue_setEventRate(sensorEventQueue, m_sensor, minimumDelay.asMicroseconds());
 
-    // Disable the sensor by default
-    setEnabled(true);
-
     // Save the index of the sensor
     m_index = static_cast<unsigned int>(sensor);
 
@@ -130,15 +132,10 @@ void SensorImpl::setEnabled(bool enabled)
 ////////////////////////////////////////////////////////////
 ASensor const* SensorImpl::getDefaultSensor(Sensor::Type sensor)
 {
-    // These sensors are unavailable from the Android C API
-    if ((sensor == Sensor::Gravity) ||
-        (sensor == Sensor::UserAcceleration) ||
-        (sensor == Sensor::Orientation))
-        return NULL;
-
     // Find the Android sensor type
-    static int types[] = {ASENSOR_TYPE_ACCELEROMETER,
-        ASENSOR_TYPE_GYROSCOPE, ASENSOR_TYPE_MAGNETIC_FIELD};
+    static int types[] = {ASENSOR_TYPE_ACCELEROMETER, ASENSOR_TYPE_GYROSCOPE,
+        ASENSOR_TYPE_MAGNETIC_FIELD, ASENSOR_TYPE_GRAVITY, ASENSOR_TYPE_LINEAR_ACCELERATION,
+        ASENSOR_TYPE_ORIENTATION};
 
     int type = types[sensor];
 
@@ -178,6 +175,27 @@ int SensorImpl::processSensorEvents(int fd, int events, void* data)
                 data.x = event.magnetic.x;
                 data.y = event.magnetic.y;
                 data.z = event.magnetic.z;
+                break;
+
+            case ASENSOR_TYPE_GRAVITY:
+                type = Sensor::Gravity;
+                data.x = event.vector.x;
+                data.y = event.vector.y;
+                data.z = event.vector.z;
+                break;
+
+            case ASENSOR_TYPE_LINEAR_ACCELERATION:
+                type = Sensor::UserAcceleration;
+                data.x = event.acceleration.x;
+                data.y = event.acceleration.y;
+                data.z = event.acceleration.z;
+                break;
+
+            case ASENSOR_TYPE_ORIENTATION:
+                type = Sensor::Orientation;
+                data.x = event.vector.x;
+                data.y = event.vector.y;
+                data.z = event.vector.z;
                 break;
         }
 

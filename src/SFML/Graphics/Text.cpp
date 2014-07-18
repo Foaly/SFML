@@ -193,7 +193,6 @@ Vector2f Text::findCharacterPos(std::size_t index) const
             case ' ' :  position.x += hspace;                 continue;
             case '\t' : position.x += hspace * 4;             continue;
             case '\n' : position.y += vspace; position.x = 0; continue;
-            case '\v' : position.y += vspace * 4;             continue;
         }
 
         // For regular characters, add the advance offset of the glyph
@@ -263,8 +262,8 @@ void Text::ensureGeometryUpdate() const
     bool  bold               = (m_style & Bold) != 0;
     bool  underlined         = (m_style & Underlined) != 0;
     float italic             = (m_style & Italic) ? 0.208f : 0.f; // 12 degrees
-    float underlineOffset    = m_characterSize * 0.1f;
-    float underlineThickness = m_characterSize * (bold ? 0.1f : 0.07f);
+    float underlineOffset    = static_cast<float>(m_font->getUnderlinePosition(m_characterSize));
+    float underlineThickness = static_cast<float>(m_font->getUnderlineThickness(m_characterSize));
 
     // Precompute the variables needed by the algorithm
     float hspace = static_cast<float>(m_font->getGlyph(L' ', m_characterSize, bold).advance);
@@ -301,7 +300,7 @@ void Text::ensureGeometryUpdate() const
         }
 
         // Handle special characters
-        if ((curChar == ' ') || (curChar == '\t') || (curChar == '\n') || (curChar == '\v'))
+        if ((curChar == ' ') || (curChar == '\t') || (curChar == '\n'))
         {
             // Update the current bounds (min coordinates)
             minX = std::min(minX, x);
@@ -312,7 +311,6 @@ void Text::ensureGeometryUpdate() const
                 case ' ' :  x += hspace;        break;
                 case '\t' : x += hspace * 4;    break;
                 case '\n' : y += vspace; x = 0; break;
-                case '\v' : y += vspace * 4;    break;
             }
 
             // Update the current bounds (max coordinates)

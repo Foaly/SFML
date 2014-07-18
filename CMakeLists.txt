@@ -53,20 +53,14 @@ sfml_set_option(SFML_OPENGL_ES ${OPENGL_ES} BOOL "TRUE to use an OpenGL ES imple
 
 # Mac OS X specific options
 if(SFML_OS_MACOSX)
-    # set default CMAKE_OSX_ARCHITECTURES value to x86_64
-    sfml_set_option(CMAKE_OSX_ARCHITECTURES "x86_64" STRING "Build architectures for OS X")
-
-    # set default CMAKE_OSX_DEPLOYMENT_TARGET value to 10.7
-    sfml_set_option(CMAKE_OSX_DEPLOYMENT_TARGET "10.7" STRING "Minimum OS version to target for deployment (at runtime)")
-
     # add an option to build frameworks instead of dylibs (release only)
     sfml_set_option(SFML_BUILD_FRAMEWORKS FALSE BOOL "TRUE to build SFML as frameworks libraries (release only), FALSE to build according to BUILD_SHARED_LIBS")
 
     # add an option to let the user specify a custom directory for frameworks installation (SFML, sndfile, ...)
     sfml_set_option(CMAKE_INSTALL_FRAMEWORK_PREFIX "/Library/Frameworks" STRING "Frameworks installation directory")
 
-    # add an option to automatically install Xcode 4 templates
-    sfml_set_option(SFML_INSTALL_XCODE4_TEMPLATES FALSE BOOL "TRUE to automatically install the Xcode 4 templates, FALSE to do nothing about it")
+    # add an option to automatically install Xcode templates
+    sfml_set_option(SFML_INSTALL_XCODE_TEMPLATES FALSE BOOL "TRUE to automatically install the Xcode templates, FALSE to do nothing about it. The templates are compatible with Xcode 4 and 5.")
 endif()
 
 # Android options
@@ -151,16 +145,14 @@ if(SFML_OS_MACOSX)
         endif()
     endif()
 
-    # Objective-C ARC requires a 64 bit runtime.
-    if(NOT CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
-        message(FATAL_ERROR "CMAKE_OSX_ARCHITECTURES should be 'x86_64'; SFML doesn't support 32 bit on Mac OS X.")
-        return()
-    endif()
-
-    # make sure CMAKE_OSX_DEPLOYMENT_TARGET is >= 10.7
-    if (CMAKE_OSX_DEPLOYMENT_TARGET VERSION_LESS "10.7")
-        message(FATAL_ERROR "CMAKE_OSX_DEPLOYMENT_TARGET (${CMAKE_OSX_DEPLOYMENT_TARGET}) should be 10.7 or better")
-        return()
+    # configure Xcode templates
+    if(CMAKE_OSX_ARCHITECTURES)
+        # maybe multiple arches are present in CMAKE_OSX_ARCHITECTURES
+        # we simply need to replace ';' by ' ' (space) and store the result in XCODE_TEMPLATES_ARCH
+        string(REPLACE ";" " " XCODE_TEMPLATES_ARCH "${CMAKE_OSX_ARCHITECTURES}")
+    else()
+        # no arch was provided to cmake, so we use the default one
+        set(XCODE_TEMPLATES_ARCH "\$(NATIVE_ARCH_ACTUAL)")
     endif()
 endif()
 
@@ -237,7 +229,7 @@ else()
     # add the remaining headers
     add_custom_command(TARGET SFML
                        POST_BUILD
-                       COMMAND cp -r ${PROJECT_SOURCE_DIR}/include/SFML/* SFML.framework/Versions/${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}/Headers)
+                       COMMAND cp -r ${PROJECT_SOURCE_DIR}/include/SFML/* $<TARGET_FILE_DIR:SFML>/Headers)
 
     # adapt install directory to allow distributing dylibs/frameworks in user’s frameworks/application bundle
     # NOTE : it's not required to link agains SFML.framework
@@ -284,14 +276,14 @@ elseif(SFML_OS_MACOSX)
     install(DIRECTORY extlibs/libs-osx/Frameworks/freetype.framework DESTINATION ${CMAKE_INSTALL_FRAMEWORK_PREFIX})
 
     # install the Xcode templates if requested
-    if(SFML_INSTALL_XCODE4_TEMPLATES)
-        install(DIRECTORY tools/xcode/templates/SFML
-                DESTINATION /Library/Developer/Xcode/Templates
-                PATTERN "*.in" EXCLUDE)
+    if(SFML_INSTALL_XCODE_TEMPLATES)
         configure_file(
                     "tools/xcode/templates/SFML/SFML Compiler.xctemplate/TemplateInfo.plist.in"
-                    "/Library/Developer/Xcode/Templates/SFML/SFML Compiler.xctemplate/TemplateInfo.plist"
+                    "${CMAKE_CURRENT_BINARY_DIR}/tools/xcode/templates/SFML/SFML Compiler.xctemplate/TemplateInfo.plist"
                     @ONLY)
+        install(DIRECTORY "tools/xcode/templates/SFML" "${CMAKE_CURRENT_BINARY_DIR}/tools/xcode/templates/SFML"
+                DESTINATION /Library/Developer/Xcode/Templates
+                PATTERN "*.in" EXCLUDE)
     endif()
 
 elseif(SFML_OS_IOS)

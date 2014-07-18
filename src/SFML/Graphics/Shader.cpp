@@ -29,6 +29,7 @@
 #include <SFML/Graphics/Shader.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Graphics/GLCheck.hpp>
+#include <SFML/Window/Context.hpp>
 #include <SFML/System/InputStream.hpp>
 #include <SFML/System/Err.hpp>
 #include <fstream>
@@ -437,15 +438,29 @@ void Shader::bind(const Shader* shader)
 ////////////////////////////////////////////////////////////
 bool Shader::isAvailable()
 {
-    ensureGlContext();
+    static bool available = false;
+    static bool checked = false;
 
-    // Make sure that extensions are initialized
-    priv::ensureExtensionsInit();
+    // Make sure we only have to check once
+    if (!checked)
+    {
+        // Create a temporary context in case the user checks
+        // before a GlResource is created, thus initializing
+        // the shared context
+        Context context;
 
-    return GLEW_ARB_shading_language_100 &&
-           GLEW_ARB_shader_objects       &&
-           GLEW_ARB_vertex_shader        &&
-           GLEW_ARB_fragment_shader;
+        // Make sure that extensions are initialized
+        priv::ensureExtensionsInit();
+
+        available = GLEW_ARB_shading_language_100 &&
+                    GLEW_ARB_shader_objects       &&
+                    GLEW_ARB_vertex_shader        &&
+                    GLEW_ARB_fragment_shader;
+
+        checked = true;
+    }
+
+    return available;
 }
 
 
@@ -586,17 +601,11 @@ int Shader::getParamLocation(const std::string& name)
     else
     {
         // Not in cache, request the location from OpenGL
-        int location = glCheck(glGetUniformLocationARB(m_shaderProgram, name.c_str()));
-        if (location != -1)
-        {
-            // Location found: add it to the cache
-            m_params.insert(std::make_pair(name, location));
-        }
-        else
-        {
-            // Error: location not found
+        int location = glGetUniformLocationARB(m_shaderProgram, name.c_str());
+        m_params.insert(std::make_pair(name, location));
+        
+        if (location == -1)
             err() << "Parameter \"" << name << "\" not found in shader" << std::endl;
-        }
 
         return location;
     }

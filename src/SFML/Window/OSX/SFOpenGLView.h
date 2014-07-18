@@ -43,14 +43,6 @@ namespace sf {
 ///
 /// NSTrackingArea is used to keep track of mouse events. We also
 /// need to be able to ignore mouse event when exiting fullscreen.
-/// The SFWindowController should call -[SFOpenGLView exitFullscreen]
-/// and -[SFOpenGLView enterFullscreen] when appropriate.
-///
-/// In order to send correct mouse coordinate to the requester when
-/// the window is in fullscreen we use m_realSize to represent the
-/// back buffer size (see SFWindowController). If 'm_realSize' is
-/// bound to its default value we don't recompute the mouse position
-/// and assume it's correct.
 ///
 /// Modifiers keys (cmd, ctrl, alt, shift) are handled by this class
 /// but the actual logic is done in SFKeyboardModifiersHelper.(h|mm).
@@ -62,6 +54,8 @@ namespace sf {
     BOOL                          m_useKeyRepeat;   ///< Key repeat setting
     BOOL                          m_mouseIsIn;      ///< Mouse positional state
     NSTrackingArea*               m_trackingArea;   ///< Mouse tracking area
+    BOOL                          m_fullscreen;     ///< Indicate whether the window is fullscreen or not
+    CGFloat                       m_scaleFactor;    ///< Display scale factor (e.g. 1x for classic display, 2x for retina)
 
     // Hidden text view used to convert key event to actual chars.
     // We use a silent responder to prevent sound alerts.
@@ -72,24 +66,26 @@ namespace sf {
 ////////////////////////////////////////////////////////////
 /// \brief Create the SFML OpenGL view
 ///
+/// NB: -initWithFrame: is also implemented to default isFullscreen to NO
+/// in case SFOpenGLView is created with the standard message.
+///
+/// To finish the initialization -finishInit should be called too.
+///
 /// \param frameRect dimension of the view
+/// \param isFullscreen fullscreen flag
 ///
 /// \return an initialized view
 ///
 ////////////////////////////////////////////////////////////
--(id)initWithFrame:(NSRect)frameRect;
+-(id)initWithFrame:(NSRect)frameRect fullscreen:(BOOL)isFullscreen;
 
 ////////////////////////////////////////////////////////////
-/// \brief Handle going in fullscreen mode
+/// \brief Finish the creation of the SFML OpenGL view
+///
+/// This method should be called after the view was added to a window
 ///
 ////////////////////////////////////////////////////////////
--(void)enterFullscreen;
-
-////////////////////////////////////////////////////////////
-/// \brief Handle exiting fullscreen mode
-///
-////////////////////////////////////////////////////////////
--(void)exitFullscreen;
+-(void)finishInit;
 
 ////////////////////////////////////////////////////////////
 /// \brief Apply the given requester to the view
@@ -120,6 +116,14 @@ namespace sf {
 ///
 ////////////////////////////////////////////////////////////
 -(void)disableKeyRepeat;
+
+////////////////////////////////////////////////////////////
+/// \brief Get the display scale factor
+///
+/// \return e.g. 1.0 for classic display, 2.0 for retina display
+///
+////////////////////////////////////////////////////////////
+-(CGFloat)displayScaleFactor;
 
 ////////////////////////////////////////////////////////////
 /// \brief Compute the position of the cursor
