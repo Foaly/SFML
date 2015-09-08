@@ -27,6 +27,7 @@
 ////////////////////////////////////////////////////////////
 #include <SFML/Window/VideoMode.hpp>
 #include <SFML/Window/VideoModeImpl.hpp>
+#include <SFML/System/Err.hpp>
 #include <algorithm>
 #include <functional>
 
@@ -37,59 +38,99 @@ namespace sf
 VideoMode::VideoMode() :
 width       (0),
 height      (0),
-bitsPerPixel(0)
+bitsPerPixel(0),
+screenId    (0)
 {
 
 }
 
 
 ////////////////////////////////////////////////////////////
-VideoMode::VideoMode(unsigned int modeWidth, unsigned int modeHeight, unsigned int modeBitsPerPixel) :
+VideoMode::VideoMode(unsigned int modeWidth, unsigned int modeHeight, unsigned int modeBitsPerPixel, unsigned int screenID) :
 width       (modeWidth),
 height      (modeHeight),
-bitsPerPixel(modeBitsPerPixel)
+bitsPerPixel(modeBitsPerPixel),
+screenId    (screenID)
 {
 
 }
 
 
 ////////////////////////////////////////////////////////////
-VideoMode VideoMode::getDesktopMode()
+VideoMode VideoMode::getDesktopMode(unsigned int screenId)
 {
-    // Directly forward to the OS-specific implementation
-    return priv::VideoModeImpl::getDesktopMode();
-}
-
-
-////////////////////////////////////////////////////////////
-const std::vector<VideoMode>& VideoMode::getFullscreenModes()
-{
-    static std::vector<VideoMode> modes;
-
-    // Populate the array on first call
-    if (modes.empty())
+    if(screenId < getScreenCount())
     {
-        modes = priv::VideoModeImpl::getFullscreenModes();
-        std::sort(modes.begin(), modes.end(), std::greater<VideoMode>());
+        // Directly forward to the OS-specific implementation
+        return priv::VideoModeImpl::getDesktopMode(screenId);
     }
 
-    return modes;
+    err() << "Desktop mode for screen with ID: " << screenId << " requested. No device with specified ID found." << std::endl;
+    return VideoMode();
 }
+
+
+////////////////////////////////////////////////////////////
+const std::vector<VideoMode>& VideoMode::getFullscreenModes(unsigned int screenId)
+{
+    static std::vector<std::vector<VideoMode> > modesPerScreen;
+
+    // Populate the array on first call
+    if (modesPerScreen.empty())
+    {
+        modesPerScreen = priv::VideoModeImpl::getFullscreenModes();
+
+        for(int i = 0; i < modesPerScreen.size(); ++i)
+        {
+            std::sort(modesPerScreen[i].begin(), modesPerScreen[i].end(), std::greater<VideoMode>());
+        }
+    }
+
+    if (screenId < modesPerScreen.size())
+    {
+        return modesPerScreen[screenId];
+    }
+
+    err() << "Fullscreen modes for screen with ID: " << screenId << " requested. No device with specified ID found." << std::endl;
+    return std::vector<VideoMode>(); // reference to temporary :(
+}
+
+
+////////////////////////////////////////////////////////////
+const Screen VideoMode::getScreenInfo(unsigned int id)
+{
+    return priv::VideoModeImpl::getScreenInfo(id);
+}
+
+
+////////////////////////////////////////////////////////////
+unsigned int VideoMode::getScreenCount()
+{
+    return priv::VideoModeImpl::getScreenCount();
+}
+
 
 
 ////////////////////////////////////////////////////////////
 bool VideoMode::isValid() const
 {
-    const std::vector<VideoMode>& modes = getFullscreenModes();
+    if(screenId < getScreenCount())
+    {
+        const std::vector<VideoMode>& modes = getFullscreenModes(screenId);
 
-    return std::find(modes.begin(), modes.end(), *this) != modes.end();
+        return std::find(modes.begin(), modes.end(), *this) != modes.end();
+    }
+
+    err() << "The screen with ID " << screenId << " is not available. Please use sf::VideoMode::getScreenCount() to get the available number of screens." << std::endl;
+    return false;
 }
 
 
 ////////////////////////////////////////////////////////////
 bool operator ==(const VideoMode& left, const VideoMode& right)
 {
-    return (left.width        == right.width)        &&
+    return (left.screenId     == right.screenId)     &&
+           (left.width        == right.width)        &&
            (left.height       == right.height)       &&
            (left.bitsPerPixel == right.bitsPerPixel);
 }

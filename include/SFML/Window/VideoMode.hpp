@@ -29,11 +29,33 @@
 // Headers
 ////////////////////////////////////////////////////////////
 #include <SFML/Window/Export.hpp>
+#include <SFML/Graphics/Rect.hpp>
+
 #include <vector>
+#include <string>
 
 
 namespace sf
 {
+
+struct SFML_WINDOW_API Screen
+{
+    Screen() :
+        name(),
+        bounds(),
+        refreshRate(0),
+        dpi()
+    {
+
+    }
+
+    std::wstring name;
+    FloatRect bounds; // dimension in virtual screen space coordinates
+    unsigned int refreshRate;
+    Vector2u dpi;
+};
+
+
 ////////////////////////////////////////////////////////////
 /// \brief VideoMode defines a video mode (width, height, bpp)
 ///
@@ -58,7 +80,7 @@ public:
     /// \param modeBitsPerPixel Pixel depths in bits per pixel
     ///
     ////////////////////////////////////////////////////////////
-    VideoMode(unsigned int modeWidth, unsigned int modeHeight, unsigned int modeBitsPerPixel = 32);
+    VideoMode(unsigned int modeWidth, unsigned int modeHeight, unsigned int modeBitsPerPixel = 32, unsigned int screenID = 0);
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the current desktop video mode
@@ -66,7 +88,7 @@ public:
     /// \return Current desktop video mode
     ///
     ////////////////////////////////////////////////////////////
-    static VideoMode getDesktopMode();
+    static VideoMode getDesktopMode(unsigned int screenId = 0);
 
     ////////////////////////////////////////////////////////////
     /// \brief Retrieve all the video modes supported in fullscreen mode
@@ -82,7 +104,12 @@ public:
     /// \return Array containing all the supported fullscreen modes
     ///
     ////////////////////////////////////////////////////////////
-    static const std::vector<VideoMode>& getFullscreenModes();
+    static const std::vector<VideoMode>& getFullscreenModes(unsigned int screenId = 0);
+
+
+    static const Screen getScreenInfo(unsigned int id);
+
+    static unsigned int getScreenCount();
 
     ////////////////////////////////////////////////////////////
     /// \brief Tell whether or not the video mode is valid
@@ -102,6 +129,7 @@ public:
     unsigned int width;        ///< Video mode width, in pixels
     unsigned int height;       ///< Video mode height, in pixels
     unsigned int bitsPerPixel; ///< Video mode pixel depth, in bits per pixels
+    unsigned int screenId;
 };
 
 ////////////////////////////////////////////////////////////
