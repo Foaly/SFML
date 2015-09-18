@@ -25,7 +25,6 @@ set(SRC
     ${SRCROOT}/ImageLoader.hpp
     ${INCROOT}/PrimitiveType.hpp
     ${INCROOT}/Rect.hpp
-    ${INCROOT}/Rect.inl
     ${SRCROOT}/RenderStates.cpp
     ${INCROOT}/RenderStates.hpp
     ${SRCROOT}/RenderTexture.cpp

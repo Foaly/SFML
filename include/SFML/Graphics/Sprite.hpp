@@ -32,7 +32,7 @@
 #include <SFML/Graphics/Drawable.hpp>
 #include <SFML/Graphics/Transformable.hpp>
 #include <SFML/Graphics/Vertex.hpp>
-#include <SFML/Graphics/Rect.hpp>
+#include <SFML/System/Rect.hpp>
 
 
 namespace sf

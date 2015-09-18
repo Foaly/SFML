@@ -16,6 +16,8 @@ set(SRC
     ${INCROOT}/Mutex.hpp
     ${INCROOT}/NativeActivity.hpp
     ${INCROOT}/NonCopyable.hpp
+    ${INCROOT}/Rect.hpp
+    ${INCROOT}/Rect.inl
     ${SRCROOT}/Sleep.cpp
     ${INCROOT}/Sleep.hpp
     ${SRCROOT}/String.cpp

@@ -32,8 +32,8 @@
 #include <SFML/Graphics/Drawable.hpp>
 #include <SFML/Graphics/Transformable.hpp>
 #include <SFML/Graphics/Font.hpp>
-#include <SFML/Graphics/Rect.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
+#include <SFML/System/Rect.hpp>
 #include <SFML/System/String.hpp>
 #include <string>
 #include <vector>
