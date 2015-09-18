@@ -33,6 +33,7 @@
 #include <SFML/Window/Export.hpp>
 #include <SFML/Window/GlResource.hpp>
 #include <SFML/Window/VideoMode.hpp>
+#include <SFML/Window/Screen.hpp>
 #include <SFML/Window/WindowHandle.hpp>
 #include <SFML/Window/WindowStyle.hpp>
 #include <SFML/System/Clock.hpp>

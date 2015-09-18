@@ -101,7 +101,7 @@ void Window::create(VideoMode mode, const String& title, Uint32 style, const Con
             if (!mode.isValid())
             {
                 err() << "The requested video mode is not available, switching to a valid mode" << std::endl;
-                mode = VideoMode::getFullscreenModes()[0];
+                mode = Screen::get(mode.screenIndex).fullscreenModes[0];
             }
 
             // Update the fullscreen window
@@ -141,7 +141,8 @@ void Window::create(WindowHandle handle, const ContextSettings& settings)
     m_impl = priv::WindowImpl::create(handle);
 
     // Recreate the context
-    m_context = priv::GlContext::create(settings, m_impl, VideoMode::getDesktopMode().bitsPerPixel);
+    // TODO: Maybe implement a get screen from point
+    m_context = priv::GlContext::create(settings, m_impl, Screen::get(0).desktopMode.bitsPerPixel);
 
     // Perform common initializations
     initialize();

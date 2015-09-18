@@ -22,38 +22,53 @@
 //
 ////////////////////////////////////////////////////////////
 
-#ifndef SFML_SFML_WINDOW_HPP
-#define SFML_SFML_WINDOW_HPP
+#ifndef SFML_SCREENIMPL_HPP
+#define SFML_SCREENIMPL_HPP
+
 
 ////////////////////////////////////////////////////////////
 // Headers
 ////////////////////////////////////////////////////////////
-
-#include <SFML/System.hpp>
-#include <SFML/Window/Clipboard.hpp>
-#include <SFML/Window/Context.hpp>
-#include <SFML/Window/ContextSettings.hpp>
-#include <SFML/Window/Cursor.hpp>
-#include <SFML/Window/Event.hpp>
-#include <SFML/Window/Joystick.hpp>
-#include <SFML/Window/Keyboard.hpp>
-#include <SFML/Window/Mouse.hpp>
 #include <SFML/Window/Screen.hpp>
-#include <SFML/Window/Sensor.hpp>
-#include <SFML/Window/Touch.hpp>
-#include <SFML/Window/VideoMode.hpp>
-#include <SFML/Window/Window.hpp>
-#include <SFML/Window/WindowHandle.hpp>
-#include <SFML/Window/WindowStyle.hpp>
 
 
-
-#endif // SFML_SFML_WINDOW_HPP
-
+namespace sf
+{
+namespace priv
+{
 ////////////////////////////////////////////////////////////
-/// \defgroup window Window module
-///
-/// Provides OpenGL-based windows, and abstractions for
-/// events and input handling.
+/// \brief OS-specific implementation of screen functions
 ///
 ////////////////////////////////////////////////////////////
+class ScreenImpl
+{
+public:
+
+    ////////////////////////////////////////////////////////////
+    /// \brief Get the number of currently connected screens
+    ///
+    /// \return Current screen count
+    ///
+    ////////////////////////////////////////////////////////////
+    static std::size_t count();
+
+    ////////////////////////////////////////////////////////////
+    /// \brief Get a screen based on its index
+    ///
+    /// If the screen with the specified index could not be found
+    /// the default screen (with index 0) is returned.
+    ///
+    /// \param id Index of the screen we want to get
+    ///
+    /// \return Screen with specified index
+    ///
+    ////////////////////////////////////////////////////////////
+    static const Screen& get(unsigned int index);
+
+};
+
+} //namespace priv
+
+} //namespace sf
+
+#endif // SFML_SCREENIMPL_HPP

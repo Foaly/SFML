@@ -26,9 +26,9 @@
 // Headers
 ////////////////////////////////////////////////////////////
 #include <SFML/Window/VideoMode.hpp>
-#include <SFML/Window/VideoModeImpl.hpp>
+#include <SFML/Window/Screen.hpp>
+#include <SFML/System/Err.hpp>
 #include <algorithm>
-#include <functional>
 
 
 namespace sf
@@ -37,17 +37,19 @@ namespace sf
 VideoMode::VideoMode() :
 width       (0),
 height      (0),
-bitsPerPixel(0)
+bitsPerPixel(0),
+screenIndex (0)
 {
 
 }
 
 
 ////////////////////////////////////////////////////////////
-VideoMode::VideoMode(unsigned int modeWidth, unsigned int modeHeight, unsigned int modeBitsPerPixel) :
+VideoMode::VideoMode(unsigned int modeWidth, unsigned int modeHeight, unsigned int modeBitsPerPixel, unsigned int modeScreenIndex) :
 width       (modeWidth),
 height      (modeHeight),
-bitsPerPixel(modeBitsPerPixel)
+bitsPerPixel(modeBitsPerPixel),
+screenIndex (modeScreenIndex)
 {
 
 }
@@ -56,40 +58,37 @@ bitsPerPixel(modeBitsPerPixel)
 ////////////////////////////////////////////////////////////
 VideoMode VideoMode::getDesktopMode()
 {
-    // Directly forward to the OS-specific implementation
-    return priv::VideoModeImpl::getDesktopMode();
+    return Screen::get(0).desktopMode;
 }
 
 
 ////////////////////////////////////////////////////////////
 const std::vector<VideoMode>& VideoMode::getFullscreenModes()
 {
-    static std::vector<VideoMode> modes;
-
-    // Populate the array on first call
-    if (modes.empty())
-    {
-        modes = priv::VideoModeImpl::getFullscreenModes();
-        std::sort(modes.begin(), modes.end(), std::greater<VideoMode>());
-    }
-
-    return modes;
+    return Screen::get(0).fullscreenModes;
 }
 
 
 ////////////////////////////////////////////////////////////
 bool VideoMode::isValid() const
 {
-    const std::vector<VideoMode>& modes = getFullscreenModes();
+    if(screenIndex < Screen::count())
+    {
+        const std::vector<VideoMode>& modes = Screen::get(screenIndex).fullscreenModes;
 
-    return std::find(modes.begin(), modes.end(), *this) != modes.end();
+        return std::find(modes.begin(), modes.end(), *this) != modes.end();
+    }
+
+    err() << "The screen with index " << screenIndex << " is not available. Please use sf::Screen::count() to get the available number of screens." << std::endl;
+    return false;
 }
 
 
 ////////////////////////////////////////////////////////////
 bool operator ==(const VideoMode& left, const VideoMode& right)
 {
-    return (left.width        == right.width)        &&
+    return (left.screenIndex  == right.screenIndex)  &&
+           (left.width        == right.width)        &&
            (left.height       == right.height)       &&
            (left.bitsPerPixel == right.bitsPerPixel);
 }

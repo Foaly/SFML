@@ -56,30 +56,35 @@ public:
     /// \param modeWidth        Width in pixels
     /// \param modeHeight       Height in pixels
     /// \param modeBitsPerPixel Pixel depths in bits per pixel
+    /// \param modeScreenIndex  Index of the screen this video mode is associated with
     ///
     ////////////////////////////////////////////////////////////
-    VideoMode(unsigned int modeWidth, unsigned int modeHeight, unsigned int modeBitsPerPixel = 32);
+    VideoMode(unsigned int modeWidth, unsigned int modeHeight, unsigned int modeBitsPerPixel = 32, unsigned int modeScreenIndex = 0);
 
     ////////////////////////////////////////////////////////////
-    /// \brief Get the current desktop video mode
+    /// \brief Get the current desktop video mode of the primary screen
     ///
-    /// \return Current desktop video mode
+    /// \return Current desktop video mode of the primary screen
+    ///
+    /// \deprecated sf::VideoMode::getDesktopMode() is deprected, use sf::Screen::get(0).desktopMode instead.
     ///
     ////////////////////////////////////////////////////////////
     static VideoMode getDesktopMode();
 
     ////////////////////////////////////////////////////////////
-    /// \brief Retrieve all the video modes supported in fullscreen mode
+    /// \brief Retrieve all the video modes supported in fullscreen mode on the primary screen
     ///
     /// When creating a fullscreen window, the video mode is restricted
     /// to be compatible with what the graphics driver and monitor
     /// support. This function returns the complete list of all video
-    /// modes that can be used in fullscreen mode.
+    /// modes that can be used in fullscreen mode on the primary screen.
     /// The returned array is sorted from best to worst, so that
     /// the first element will always give the best mode (higher
     /// width, height and bits-per-pixel).
     ///
     /// \return Array containing all the supported fullscreen modes
+    ///
+    /// \deprecated sf::VideoMode::getFullscreenModes() is deprected, use sf::Screen::get(0).fullscreenModes instead.
     ///
     ////////////////////////////////////////////////////////////
     static const std::vector<VideoMode>& getFullscreenModes();
@@ -87,9 +92,10 @@ public:
     ////////////////////////////////////////////////////////////
     /// \brief Tell whether or not the video mode is valid
     ///
-    /// The validity of video modes is only relevant when using
-    /// fullscreen windows; otherwise any video mode can be used
-    /// with no restriction.
+    /// Check whether the video mode is a supported fullscreen mode
+    /// on the specified screen. The validity of video modes is only
+    /// relevant when using fullscreen windows; otherwise any video
+    /// mode can be used with no restriction.
     ///
     /// \return True if the video mode is valid for fullscreen mode
     ///
@@ -102,6 +108,7 @@ public:
     unsigned int width;        ///< Video mode width, in pixels
     unsigned int height;       ///< Video mode height, in pixels
     unsigned int bitsPerPixel; ///< Video mode pixel depth, in bits per pixels
+    unsigned int screenIndex;  ///< Index of the screen this video mode is associated with
 };
 
 ////////////////////////////////////////////////////////////
@@ -186,31 +193,32 @@ SFML_WINDOW_API bool operator >=(const VideoMode& left, const VideoMode& right);
 /// \class sf::VideoMode
 /// \ingroup window
 ///
-/// A video mode is defined by a width and a height (in pixels)
-/// and a depth (in bits per pixel). Video modes are used to
-/// setup windows (sf::Window) at creation time.
+/// A video mode is defined by a width and a height (in pixels),
+/// a depth (in bits per pixel) and the index of the screen it
+/// belongs too. Video modes are used to setup windows
+/// (sf::Window) at creation time.
+///
+/// You can check if a custom video mode is a supported
+/// fullscreen mode on the specified screen, by using
+/// the isValid() method.
 ///
 /// The main usage of video modes is for fullscreen mode:
-/// indeed you must use one of the valid video modes
-/// allowed by the OS (which are defined by what the monitor
-/// and the graphics card support), otherwise your window
-/// creation will just fail.
+/// indeed you must use a valid video mode supported by
+/// the graphics card driver and the screen, otherwise
+/// your window creation will just fail. To retrieve a
+/// list of supported fullscreen modes of a screen, use
+/// sf::Screen::get().
 ///
-/// sf::VideoMode provides a static function for retrieving
-/// the list of all the video modes supported by the system:
-/// getFullscreenModes().
+/// sf::VideoMode still provides two static functions to
+/// get the fullscreen modes and the current desktop mode
+/// of the <b>primary screen</b> for backward compatibility.
+/// Note that these functions are deprecated and will be
+/// removed in the future. Use sf::Screen instead.
 ///
-/// A custom video mode can also be checked directly for
-/// fullscreen compatibility with its isValid() function.
-///
-/// Additionally, sf::VideoMode provides a static function
-/// to get the mode currently used by the desktop: getDesktopMode().
-/// This allows to build windows with the same size or pixel
-/// depth as the current resolution.
 ///
 /// Usage example:
 /// \code
-/// // Display the list of all the video modes available for fullscreen
+/// // Display a list of all the fullscreen video modes available on the primary screen
 /// std::vector<sf::VideoMode> modes = sf::VideoMode::getFullscreenModes();
 /// for (std::size_t i = 0; i < modes.size(); ++i)
 /// {
@@ -220,9 +228,11 @@ SFML_WINDOW_API bool operator >=(const VideoMode& left, const VideoMode& right);
 ///               << mode.bitsPerPixel << " bpp" << std::endl;
 /// }
 ///
-/// // Create a window with the same pixel depth as the desktop
+/// // Create a window with the same pixel depth as the desktop on the primary screen
 /// sf::VideoMode desktop = sf::VideoMode::getDesktopMode();
 /// window.create(sf::VideoMode(1024, 768, desktop.bitsPerPixel), "SFML window");
 /// \endcode
+///
+/// \see sf::Screen
 ///
 ////////////////////////////////////////////////////////////

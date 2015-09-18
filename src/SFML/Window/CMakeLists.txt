@@ -31,6 +31,9 @@ set(SRC
     ${SRCROOT}/Mouse.cpp
     ${INCROOT}/Touch.hpp
     ${SRCROOT}/Touch.cpp
+    ${INCROOT}/Screen.hpp
+    ${SRCROOT}/Screen.cpp
+    ${SRCROOT}/ScreenImpl.hpp
     ${INCROOT}/Sensor.hpp
     ${SRCROOT}/Sensor.cpp
     ${SRCROOT}/SensorImpl.hpp
@@ -38,7 +41,6 @@ set(SRC
     ${SRCROOT}/SensorManager.hpp
     ${SRCROOT}/VideoMode.cpp
     ${INCROOT}/VideoMode.hpp
-    ${SRCROOT}/VideoModeImpl.hpp
     ${SRCROOT}/Window.cpp
     ${INCROOT}/Window.hpp
     ${INCROOT}/WindowHandle.hpp
@@ -69,9 +71,10 @@ if(SFML_OS_WINDOWS)
         ${SRCROOT}/Win32/InputImpl.hpp
         ${SRCROOT}/Win32/JoystickImpl.cpp
         ${SRCROOT}/Win32/JoystickImpl.hpp
+        ${SRCROOT}/Win32/ScreenImpl.cpp
+        ${SRCROOT}/Win32/ScreenImpl.hpp
         ${SRCROOT}/Win32/SensorImpl.hpp
         ${SRCROOT}/Win32/SensorImpl.cpp
-        ${SRCROOT}/Win32/VideoModeImpl.cpp
         ${SRCROOT}/Win32/WindowImplWin32.cpp
         ${SRCROOT}/Win32/WindowImplWin32.hpp
     )

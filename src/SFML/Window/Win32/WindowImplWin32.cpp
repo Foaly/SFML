@@ -35,9 +35,12 @@
 #define _WIN32_WINNT   0x0501
 #define WINVER         0x0501
 #include <SFML/Window/Win32/WindowImplWin32.hpp>
+#include <SFML/Window/Win32/ScreenImpl.hpp>
+#include <SFML/Window/Screen.hpp>
 #include <SFML/Window/WindowStyle.hpp>
 #include <GL/gl.h>
 #include <SFML/System/Err.hpp>
+#include <SFML/System/Rect.hpp>
 #include <SFML/System/Utf.hpp>
 #include <vector>
 #include <cstring>
@@ -184,12 +187,11 @@ m_cursorGrabbed   (m_fullscreen)
         registerWindowClass();
 
     // Compute position and size
-    HDC screenDC = GetDC(NULL);
-    int left   = (GetDeviceCaps(screenDC, HORZRES) - static_cast<int>(mode.width))  / 2;
-    int top    = (GetDeviceCaps(screenDC, VERTRES) - static_cast<int>(mode.height)) / 2;
-    int width  = mode.width;
-    int height = mode.height;
-    ReleaseDC(NULL, screenDC);
+    const IntRect screenDimensions = Screen::get(mode.screenIndex).bounds;
+    const int left   = ((screenDimensions.width  - static_cast<int>(mode.width))  / 2) + screenDimensions.left;
+    const int top    = ((screenDimensions.height - static_cast<int>(mode.height)) / 2) + screenDimensions.top;;
+          int width  = mode.width;
+          int height = mode.height;
 
     // Choose the window style according to the Style parameter
     DWORD win32Style = WS_VISIBLE;
@@ -483,15 +485,22 @@ void WindowImplWin32::registerWindowClass()
 ////////////////////////////////////////////////////////////
 void WindowImplWin32::switchToFullscreen(const VideoMode& mode)
 {
+    const IntRect screenDimensions = Screen::get(mode.screenIndex).bounds;
+
     DEVMODE devMode;
+    std::memset(&devMode, 0, sizeof(devMode));
     devMode.dmSize       = sizeof(devMode);
-    devMode.dmPelsWidth  = mode.width;
-    devMode.dmPelsHeight = mode.height;
+    devMode.dmPosition.x = screenDimensions.left;
+    devMode.dmPosition.y = screenDimensions.top;
+    devMode.dmPelsWidth  = screenDimensions.width;
+    devMode.dmPelsHeight = screenDimensions.height;
     devMode.dmBitsPerPel = mode.bitsPerPixel;
-    devMode.dmFields     = DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL;
+    devMode.dmFields     = DM_POSITION | DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL;
+
+    const sf::String& deviceName = priv::getDisplayDeviceFromIndex(mode.screenIndex);
 
     // Apply fullscreen mode
-    if (ChangeDisplaySettingsW(&devMode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
+    if (ChangeDisplaySettingsEx(deviceName.toWideString().c_str(), &devMode, NULL, CDS_FULLSCREEN, NULL) != DISP_CHANGE_SUCCESSFUL)
     {
         err() << "Failed to change display mode for fullscreen" << std::endl;
         return;
@@ -502,7 +511,7 @@ void WindowImplWin32::switchToFullscreen(const VideoMode& mode)
     SetWindowLongW(m_handle, GWL_EXSTYLE, WS_EX_APPWINDOW);
 
     // Resize the window so that it fits the entire screen
-    SetWindowPos(m_handle, HWND_TOP, 0, 0, mode.width, mode.height, SWP_FRAMECHANGED);
+    SetWindowPos(m_handle, HWND_TOP, screenDimensions.left, screenDimensions.top, screenDimensions.width, screenDimensions.height, SWP_FRAMECHANGED);
     ShowWindow(m_handle, SW_SHOW);
 
     // Set "this" as the current fullscreen window
@@ -706,7 +715,7 @@ void WindowImplWin32::processEvent(UINT message, WPARAM wParam, LPARAM lParam)
                     {
                         // Convert the UTF-16 surrogate pair to a single UTF-32 value
                         Uint16 utf16[] = {m_surrogate, static_cast<Uint16>(character)};
-                        sf::Utf16::toUtf32(utf16, utf16 + 2, &character);
+                        Utf16::toUtf32(utf16, utf16 + 2, &character);
                         m_surrogate = 0;
                     }
 
