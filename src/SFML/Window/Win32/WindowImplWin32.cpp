@@ -143,8 +143,8 @@ m_lastSize        (0, 0),
 m_resizing        (false),
 m_surrogate       (0),
 m_mouseInside     (false),
-m_fullscreen      (false),
-m_cursorGrabbed   (false)
+m_cursorGrabbed   (false),
+m_isFullscreen    (false)
 {
     // Set that this process is DPI aware and can handle DPI scaling
     setProcessDpiAware();
@@ -176,8 +176,9 @@ m_lastSize        (mode.width, mode.height),
 m_resizing        (false),
 m_surrogate       (0),
 m_mouseInside     (false),
-m_fullscreen      (style & Style::Fullscreen),
-m_cursorGrabbed   (m_fullscreen)
+m_cursorGrabbed   (m_fullscreen),
+m_isFullscreen    (false),
+m_mode            (mode)
 {
     // Set that this process is DPI aware and can handle DPI scaling
     setProcessDpiAware();
@@ -187,11 +188,11 @@ m_cursorGrabbed   (m_fullscreen)
         registerWindowClass();
 
     // Compute position and size
-    const IntRect screenDimensions = Screen::get(mode.screenIndex).bounds;
-    const int left   = ((screenDimensions.width  - static_cast<int>(mode.width))  / 2) + screenDimensions.left;
-    const int top    = ((screenDimensions.height - static_cast<int>(mode.height)) / 2) + screenDimensions.top;;
-          int width  = mode.width;
-          int height = mode.height;
+    const IntRect screenDimensions = Screen::get(m_mode.screenIndex).bounds;
+    const int left   = ((screenDimensions.width  - static_cast<int>(m_mode.width))  / 2) + screenDimensions.left;
+    const int top    = ((screenDimensions.height - static_cast<int>(m_mode.height)) / 2) + screenDimensions.top;;
+          int width  = m_mode.width;
+          int height = m_mode.height;
 
     // Choose the window style according to the Style parameter
     DWORD win32Style = WS_VISIBLE;
@@ -207,7 +208,8 @@ m_cursorGrabbed   (m_fullscreen)
     }
 
     // In windowed mode, adjust width and height so that window will have the requested client area
-    if (!m_fullscreen)
+    m_isFullscreen = (style & Style::Fullscreen) != 0;
+    if (!m_isFullscreen)
     {
         RECT rectangle = {0, 0, width, height};
         AdjustWindowRect(&rectangle, win32Style, false);
@@ -229,11 +231,11 @@ m_cursorGrabbed   (m_fullscreen)
 
     // By default, the OS limits the size of the window the the desktop size,
     // we have to resize it after creation to apply the real size
-    setSize(Vector2u(mode.width, mode.height));
+    setSize(Vector2u(m_mode.width, m_mode.height));
 
     // Switch to fullscreen if requested
-    if (m_fullscreen)
-        switchToFullscreen(mode);
+    if (m_isFullscreen)
+        switchToFullscreen();
 
     // Increment window count
     windowCount++;
@@ -483,9 +485,9 @@ void WindowImplWin32::registerWindowClass()
 
 
 ////////////////////////////////////////////////////////////
-void WindowImplWin32::switchToFullscreen(const VideoMode& mode)
+void WindowImplWin32::switchToFullscreen()
 {
-    const IntRect screenDimensions = Screen::get(mode.screenIndex).bounds;
+    const IntRect screenDimensions = Screen::get(m_mode.screenIndex).bounds;
 
     DEVMODE devMode;
     std::memset(&devMode, 0, sizeof(devMode));
@@ -494,10 +496,10 @@ void WindowImplWin32::switchToFullscreen(const VideoMode& mode)
     devMode.dmPosition.y = screenDimensions.top;
     devMode.dmPelsWidth  = screenDimensions.width;
     devMode.dmPelsHeight = screenDimensions.height;
-    devMode.dmBitsPerPel = mode.bitsPerPixel;
+    devMode.dmBitsPerPel = m_mode.bitsPerPixel;
     devMode.dmFields     = DM_POSITION | DM_PELSWIDTH | DM_PELSHEIGHT | DM_BITSPERPEL;
 
-    const sf::String& deviceName = priv::getDisplayDeviceFromIndex(mode.screenIndex);
+    const sf::String& deviceName = priv::getDisplayDeviceFromIndex(m_mode.screenIndex);
 
     // Apply fullscreen mode
     if (ChangeDisplaySettingsEx(deviceName.toWideString().c_str(), &devMode, NULL, CDS_FULLSCREEN, NULL) != DISP_CHANGE_SUCCESSFUL)
@@ -513,9 +515,6 @@ void WindowImplWin32::switchToFullscreen(const VideoMode& mode)
     // Resize the window so that it fits the entire screen
     SetWindowPos(m_handle, HWND_TOP, screenDimensions.left, screenDimensions.top, screenDimensions.width, screenDimensions.height, SWP_FRAMECHANGED);
     ShowWindow(m_handle, SW_SHOW);
-
-    // Set "this" as the current fullscreen window
-    fullscreenWindow = this;
 }
 
 
@@ -523,10 +522,11 @@ void WindowImplWin32::switchToFullscreen(const VideoMode& mode)
 void WindowImplWin32::cleanup()
 {
     // Restore the previous video mode (in case we were running in fullscreen)
-    if (fullscreenWindow == this)
+    if (m_isFullscreen)
     {
-        ChangeDisplaySettingsW(NULL, 0);
-        fullscreenWindow = NULL;
+        const sf::String screenName = priv::getDisplayDeviceFromIndex(m_mode.screenIndex);
+        ChangeDisplaySettingsEx(screenName.toWideString().c_str(), NULL, NULL, 0, NULL);
+        m_isFullscreen = false;
     }
 
     // Unhide the mouse cursor (in case it was hidden)
@@ -1160,4 +1160,3 @@ LRESULT CALLBACK WindowImplWin32::globalOnEvent(HWND handle, UINT message, WPARA
 } // namespace priv
 
 } // namespace sf
-

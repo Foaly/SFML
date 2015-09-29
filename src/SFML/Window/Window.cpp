@@ -32,12 +32,6 @@
 #include <SFML/System/Err.hpp>
 
 
-namespace
-{
-    const sf::Window* fullscreenWindow = NULL;
-}
-
-
 namespace sf
 {
 ////////////////////////////////////////////////////////////
@@ -89,23 +83,11 @@ void Window::create(VideoMode mode, const String& title, Uint32 style, const Con
     // Fullscreen style requires some tests
     if (style & Style::Fullscreen)
     {
-        // Make sure there's not already a fullscreen window (only one is allowed)
-        if (fullscreenWindow)
+        // Make sure that the chosen video mode is compatible
+        if (!mode.isValid())
         {
-            err() << "Creating two fullscreen windows is not allowed, switching to windowed mode" << std::endl;
-            style &= ~Style::Fullscreen;
-        }
-        else
-        {
-            // Make sure that the chosen video mode is compatible
-            if (!mode.isValid())
-            {
-                err() << "The requested video mode is not available, switching to a valid mode" << std::endl;
-                mode = Screen::get(mode.screenIndex).fullscreenModes[0];
-            }
-
-            // Update the fullscreen window
-            fullscreenWindow = this;
+            err() << "The requested video mode is not available, switching to a valid mode" << std::endl;
+            mode = Screen::get(mode.screenIndex).fullscreenModes[0];
         }
     }
 
@@ -159,10 +141,6 @@ void Window::close()
     // Delete the window implementation
     delete m_impl;
     m_impl = NULL;
-
-    // Update the fullscreen window
-    if (this == fullscreenWindow)
-        fullscreenWindow = NULL;
 }
 
 
