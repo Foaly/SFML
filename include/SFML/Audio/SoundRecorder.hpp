@@ -145,6 +145,32 @@ public:
     const std::string& getDevice() const;
 
     ////////////////////////////////////////////////////////////
+    /// \brief Enable the audio capture device to record in stereo
+    ///
+    /// This method allows you to choose between a 16-bit mono and
+    /// a 16-bit stereo recording.
+    ///
+    /// \param isStereo Boolean flag to indicate whether or not
+    ///                 to use stereo recording
+    ///
+    ////////////////////////////////////////////////////////////
+    void enableStereoRecording(bool isStereo);
+
+    ////////////////////////////////////////////////////////////
+    /// \brief Get the number of channels used by this recorder
+    ///
+    /// If the sound is recorded in mono the number of channels
+    /// will be 1, if it is recorded in stereo the number of
+    /// channels will be 2.
+    ///
+    /// \return Number of channels
+    ///
+    /// \see enableStereoRecording
+    ///
+    ////////////////////////////////////////////////////////////
+    unsigned int getChannelCount() const;
+
+    ////////////////////////////////////////////////////////////
     /// \brief Check if the system supports audio capture
     ///
     /// This function should always be called before using
@@ -263,6 +289,7 @@ private:
     Time               m_processingInterval; ///< Time period between calls to onProcessSamples
     bool               m_isCapturing;        ///< Capturing state
     std::string        m_deviceName;         ///< Name of the audio capture device
+    bool               m_isStereo;           ///< Are we recording in mono or stereo?
 };
 
 } // namespace sf
@@ -308,6 +335,11 @@ private:
 /// getAvailableDevices() function. You can then select a device
 /// by calling setDevice() with the appropriate device. Otherwise
 /// the default capturing device will be used.
+///
+/// By default the recording is in 16-bit mono but using the
+/// enableStereoRecording method you can change the audio capture
+/// device to record in stereo. Note that you have to decide whether
+/// you want to record in mono or stereo before starting the recording.
 ///
 /// It is important to note that the audio capture happens in a
 /// separate thread, so that it doesn't block the rest of the

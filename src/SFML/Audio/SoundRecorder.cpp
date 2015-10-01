@@ -49,7 +49,8 @@ SoundRecorder::SoundRecorder() :
 m_thread            (&SoundRecorder::record, this),
 m_sampleRate        (0),
 m_processingInterval(milliseconds(100)),
-m_isCapturing       (false)
+m_isCapturing       (false),
+m_isStereo          (false)
 {
     // Set the device name to the default device
     m_deviceName = getDefaultDevice();
@@ -80,8 +81,8 @@ bool SoundRecorder::start(unsigned int sampleRate)
         return false;
     }
 
-    // Open the capture device for capturing 16 bits mono samples
-    captureDevice = alcCaptureOpenDevice(m_deviceName.c_str(), sampleRate, AL_FORMAT_MONO16, sampleRate);
+    // Open the capture device for capturing 16 bits samples
+    captureDevice = alcCaptureOpenDevice(m_deviceName.c_str(), sampleRate, (m_isStereo) ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16, sampleRate);
     if (!captureDevice)
     {
         err() << "Failed to open the audio capture device with the name: " << m_deviceName << std::endl;
@@ -171,8 +172,8 @@ bool SoundRecorder::setDevice(const std::string& name)
         m_isCapturing = false;
         m_thread.wait();
 
-        // Open the requested capture device for capturing 16 bits mono samples
-        captureDevice = alcCaptureOpenDevice(name.c_str(), m_sampleRate, AL_FORMAT_MONO16, m_sampleRate);
+        // Open the requested capture device for capturing 16 bits samples
+        captureDevice = alcCaptureOpenDevice(name.c_str(), m_sampleRate, (m_isStereo) ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16, m_sampleRate);
         if (!captureDevice)
         {
             // Notify derived class
@@ -198,6 +199,28 @@ bool SoundRecorder::setDevice(const std::string& name)
 const std::string& SoundRecorder::getDevice() const
 {
     return m_deviceName;
+}
+
+
+////////////////////////////////////////////////////////////
+void SoundRecorder::enableStereoRecording(bool isStereo)
+{
+    if (m_isCapturing)
+    {
+        sf::err() << "It's not possible to change the channels while recording. Please stop the recording and call enableStereoRecording() again." << std::endl;
+        return;
+    }
+
+    m_isStereo = isStereo;
+}
+
+
+////////////////////////////////////////////////////////////
+unsigned int SoundRecorder::getChannelCount() const
+{
+    if (m_isStereo)
+        return 2;
+    return 1;
 }
 
 
@@ -258,7 +281,7 @@ void SoundRecorder::processCapturedSamples()
     if (samplesAvailable > 0)
     {
         // Get the recorded samples
-        m_samples.resize(samplesAvailable);
+        m_samples.resize(samplesAvailable * getChannelCount());
         alcCaptureSamples(captureDevice, &m_samples[0], samplesAvailable);
 
         // Forward them to the derived class
