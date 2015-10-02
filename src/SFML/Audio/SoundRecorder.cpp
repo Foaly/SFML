@@ -163,13 +163,10 @@ std::string SoundRecorder::getDefaultDevice()
 
 
 ////////////////////////////////////////////////////////////
-bool SoundRecorder::setDevice(const std::string& name)
+bool SoundRecorder::setDevice(std::string name)
 {
-    // Store the device name
     if (name.empty())
-        m_deviceName = getDefaultDevice();
-    else
-        m_deviceName = name;
+        name = getDefaultDevice();
 
     if (m_isCapturing)
     {
@@ -177,16 +174,29 @@ bool SoundRecorder::setDevice(const std::string& name)
         m_isCapturing = false;
         m_thread.wait();
 
-        // Open the requested capture device for capturing 16 bits samples
+        // Try to open the requested capture device for capturing 16 bits samples
         captureDevice = alcCaptureOpenDevice(name.c_str(), m_sampleRate, (m_isStereo) ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16, m_sampleRate);
         if (!captureDevice)
         {
-            // Notify derived class
-            onStop();
+            alcCaptureCloseDevice(captureDevice);
+            err() << "Failed to open the audio capture device with the name: " << name << std::endl;
+            err() << "Falling back to the previously used audio capture device with the name: " << m_deviceName << std::endl;
 
-            err() << "Failed to open the audio capture device with the name: " << m_deviceName << std::endl;
+            // Reopen the previously used capture device
+            captureDevice = alcCaptureOpenDevice(m_deviceName.c_str(), m_sampleRate, (m_isStereo) ? AL_FORMAT_STEREO16 : AL_FORMAT_MONO16, m_sampleRate);
+
+            // Restart the capture
+            alcCaptureStart(captureDevice);
+
+            // Start the capture in a new thread, to avoid blocking the main thread
+            m_isCapturing = true;
+            m_thread.launch();
+
             return false;
         }
+
+        // Store the device name
+        m_deviceName = name;
 
         // Start the capture
         alcCaptureStart(captureDevice);

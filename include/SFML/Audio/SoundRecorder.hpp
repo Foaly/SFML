@@ -125,7 +125,8 @@ public:
     /// This function sets the audio capture device to the device
     /// with the given \a name. It can be called on the fly (i.e:
     /// while recording). If you do so while recording and
-    /// opening the device fails, it stops the recording.
+    /// opening the device fails, it will fall back to the previously
+    /// used device.
     ///
     /// \param name The name of the audio capture device
     ///
@@ -134,7 +135,7 @@ public:
     /// \see getAvailableDevices, getDefaultDevice
     ///
     ////////////////////////////////////////////////////////////
-    bool setDevice(const std::string& name);
+    bool setDevice(std::string name);
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the name of the current audio capture device
