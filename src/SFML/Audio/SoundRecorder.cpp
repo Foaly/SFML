@@ -60,7 +60,8 @@ m_isStereo          (false)
 ////////////////////////////////////////////////////////////
 SoundRecorder::~SoundRecorder()
 {
-    // Nothing to do
+    // Make sure to stop the recording thread
+    stop();
 }
 
 
@@ -115,12 +116,16 @@ bool SoundRecorder::start(unsigned int sampleRate)
 ////////////////////////////////////////////////////////////
 void SoundRecorder::stop()
 {
-    // Stop the capturing thread
-    m_isCapturing = false;
-    m_thread.wait();
+    // Stop the recording if there is one
+    if (m_isCapturing)
+    {
+        // Stop the capturing thread
+        m_isCapturing = false;
+        m_thread.wait();
 
-    // Notify derived class
-    onStop();
+        // Notify derived class
+        onStop();
+    }
 }
 
 
