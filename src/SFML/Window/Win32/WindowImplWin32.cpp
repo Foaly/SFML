@@ -404,6 +404,12 @@ bool WindowImplWin32::hasFocus() const
 }
 
 
+void WindowImplWin32::maximize()
+{
+    ShowWindow(m_handle, SW_MAXIMIZE);
+}
+
+
 ////////////////////////////////////////////////////////////
 void WindowImplWin32::registerWindowClass()
 {

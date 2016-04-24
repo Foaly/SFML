@@ -440,6 +440,12 @@ public:
     bool hasFocus() const;
 
     ////////////////////////////////////////////////////////////
+    /// \brief Maximize the window
+    ///
+    ////////////////////////////////////////////////////////////
+    void maximize();
+
+    ////////////////////////////////////////////////////////////
     /// \brief Display on screen what has been rendered to the window so far
     ///
     /// This function is typically called after all OpenGL rendering
