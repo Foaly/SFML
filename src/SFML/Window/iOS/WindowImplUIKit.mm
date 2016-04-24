@@ -205,6 +205,13 @@ bool WindowImplUIKit::hasFocus() const
 
 
 ////////////////////////////////////////////////////////////
+void WindowImplUIKit::maximize()
+{
+    // Not applicable
+}
+
+
+////////////////////////////////////////////////////////////
 void WindowImplUIKit::forwardEvent(Event event)
 {
     if (event.type == Event::GainedFocus)

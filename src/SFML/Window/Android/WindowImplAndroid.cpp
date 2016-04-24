@@ -200,6 +200,13 @@ bool WindowImplAndroid::hasFocus() const
 
 
 ////////////////////////////////////////////////////////////
+void WindowImplAndroid::maximize()
+{
+    // Not applicable
+}
+
+
+////////////////////////////////////////////////////////////
 void WindowImplAndroid::forwardEvent(const Event& event)
 {
     ActivityStates* states = getActivity(NULL);

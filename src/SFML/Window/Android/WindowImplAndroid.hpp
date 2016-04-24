@@ -169,6 +169,12 @@ public:
     ////////////////////////////////////////////////////////////
     virtual bool hasFocus() const;
 
+    ////////////////////////////////////////////////////////////
+    /// \brief Maximize the window (not applicable on Android)
+    ///
+    ////////////////////////////////////////////////////////////
+    virtual void maximize();
+
     static void forwardEvent(const Event& event);
     static WindowImplAndroid* singleInstance;
 
