@@ -1058,6 +1058,51 @@ bool WindowImplX11::hasFocus() const
 
 
 ////////////////////////////////////////////////////////////
+void WindowImplX11::maximize()
+{
+    if (ewmhSupported())
+    {
+        xcb_atom_t netWmState             = getAtom("_NET_WM_STATE",                true);
+        xcb_atom_t netWmStateMaximizeHorz = getAtom("_NET_WM_STATE_MAXIMIZED_HORZ", true);
+        xcb_atom_t netWmStateMaximizeVert = getAtom("_NET_WM_STATE_MAXIMIZED_VERT", true);
+
+        if (!netWmState || !netWmStateMaximizeHorz || !netWmStateMaximizeVert)
+        {
+            err() << "Maximizing window failed. Could not get required atoms." << std::endl;
+            return;
+        }
+
+        xcb_client_message_event_t event;
+        std::memset(&event, 0, sizeof(event));
+
+        event.response_type = XCB_CLIENT_MESSAGE;
+        event.window = m_window;
+        event.format = 32;
+        event.sequence = 0;
+        event.type = netWmState;
+        event.data.data32[0] = 1; // _NET_WM_STATE_ADD
+        event.data.data32[1] = netWmStateMaximizeHorz;
+        event.data.data32[2] = netWmStateMaximizeVert;
+        event.data.data32[3] = 1; // Normal window
+
+        ScopedXcbPtr<xcb_generic_error_t> wmStateError(xcb_request_check(
+            m_connection,
+            xcb_send_event_checked(
+                m_connection,
+                0,
+                XCBDefaultRootWindow(m_connection),
+                XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY | XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT,
+                reinterpret_cast<char*>(&event)
+            )
+        ));
+
+        if (wmStateError)
+            err() << "Maximizing window failed. Could not send \"_NET_WM_STATE\" event." << std::endl;
+    }
+}
+
+
+////////////////////////////////////////////////////////////
 void WindowImplX11::grabFocus()
 {
     xcb_atom_t netActiveWindow = XCB_ATOM_NONE;
